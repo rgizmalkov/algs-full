@@ -6,7 +6,6 @@ import org.apache.log4j.Logger;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.lang.reflect.Executable;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -25,7 +24,7 @@ public class  TestingExecutor<T> {
     private static final Logger LOG = Logger.getLogger(TestingExecutor.class);
 
     private Algorithm alg;
-    private Map<String, TestingFile> scope;
+    private Map<String, TestingSample<File>> scope;
     private ExecutorService executor;
     private long limit;
 
@@ -35,33 +34,15 @@ public class  TestingExecutor<T> {
             AbstractEnum alg                        ,
             long limit                              ,
             String question                         ,
-            String answer                           ,
-            String path                             )
+            String answer                           )
             throws Exception {
         this.alg = TestingClassFactory.newInstance(pack, alg);
         this.scope = new HashMap<>();
         this.executor = Executors.newSingleThreadExecutor();
         this.limit = limit;
-        prepare(path,question,answer);
-
+        this.scope = TestsSampleLoader.fload(question, answer, alg.getPath());
     }
 
-    private void prepare(String spath, String question, String answer) throws Exception{
-        Pattern pquestion = Pattern.compile(question);
-        Pattern panswer = Pattern.compile(answer);
-
-        Stream<Path> stream = Files.list(Paths.get(spath));
-        stream.forEach(path ->{
-            File file = path.toFile();
-            if(pquestion.matcher(file.getName()).matches()){
-                TestingFile testingFile = new TestingFile();
-                testingFile.setQuestion(file);
-                scope.put(file.getName(), testingFile);
-            }else if(panswer.matcher(file.getName()).matches()){
-                scope.get(file.getName().substring(0, file.getName().indexOf('.'))).setAnswer(file);
-            }
-        });
-    }
 
     private Review alg(String name){
         Future<T> future = executor.submit(new Task<T>(alg));
@@ -84,12 +65,12 @@ public class  TestingExecutor<T> {
 
     public void run() throws FileNotFoundException {
         for (String fileName : scope.keySet()) {
-            TestingFile testingFile = scope.get(fileName);
-            Scanner scanner = new Scanner(testingFile.getQuestion());
+            TestingSample testingSample = scope.get(fileName);
+            Scanner scanner = new Scanner((File)testingSample.getQuestion());
             alg.prepare(scanner);
             Review review = alg(fileName);
             if(review.getBox() != CheckBox.TEST_NOT_PASSED){
-                scanner = new Scanner(testingFile.getAnswer());
+                scanner = new Scanner((File)testingSample.getAnswer());
                 String answer = alg.answer(scanner);
                 if(answer.equals(review.getMessage())){
                     review.setBox(CheckBox.TEST_PASSED);
