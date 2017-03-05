@@ -9,5 +9,7 @@ import java.util.Scanner;
 public interface Algorithm {
     Object alg();
     void prepare(Scanner scanner);
+
+    /*for test samples*/
     String answer(Scanner scanner);
 }

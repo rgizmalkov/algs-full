@@ -5,4 +5,5 @@ package com.gmail.rgizmalkov.algs.interfaces;
  */
 public interface AbstractEnum {
     String getName();
+    String getPath();
 }
